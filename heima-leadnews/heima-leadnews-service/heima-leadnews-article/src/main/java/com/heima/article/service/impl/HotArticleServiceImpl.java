@@ -10,7 +10,6 @@ import com.heima.model.article.pojos.ApArticle;
 import com.heima.model.article.vos.HotArticleVo;
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.wemedia.pojos.WmChannel;
-import com.sun.deploy.association.utility.AppConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.joda.time.DateTime;
 import org.springframework.beans.BeanUtils;
