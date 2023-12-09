@@ -3,10 +3,8 @@ package com.heima.search.service.impl;
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;
 import com.heima.model.search.dtos.UserSearchDto;
-import com.heima.model.user.pojos.ApUser;
 import com.heima.search.pojos.ApAssociateWords;
 import com.heima.search.service.ApAssociateWordsService;
-import com.heima.utils.thread.AppThreadLocalUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,42 +15,34 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-/**
- * @projectName: heima-leadnews
- * @package: com.heima.search.service.impl
- * @className: ApAssociateWordsServiceImpl
- * @author: 丁海斌
- * @description: TODO
- * @date: 2023/12/2 15:12
- * @version: 1.0
- */
 @Service
 @Slf4j
 public class ApAssociateWordsServiceImpl implements ApAssociateWordsService {
 
     @Autowired
     private MongoTemplate mongoTemplate;
+
     /**
-     * 联想词
-     * @param userSearchDto
+     * 搜索联想词
+     * @param dto
      * @return
      */
     @Override
-    public ResponseResult findAssociate(UserSearchDto userSearchDto) {
-        //1 参数检查
-        if(userSearchDto == null || StringUtils.isBlank(userSearchDto.getSearchWords())){
+    public ResponseResult search(UserSearchDto dto) {
+        //1.检查参数
+        if(StringUtils.isBlank(dto.getSearchWords())){
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID);
         }
-        //分页检查
-        if (userSearchDto.getPageSize() > 20) {
-            userSearchDto.setPageSize(20);
+
+        //2.分页检查
+        if(dto.getPageSize() > 20){
+            dto.setPageSize(20);
         }
 
-        //3 执行查询 模糊查询
-        Query query = Query.query(Criteria.where("associateWords").regex(".*?\\" + userSearchDto.getSearchWords() + ".*"));
-        query.limit(userSearchDto.getPageSize());
-        List<ApAssociateWords> wordsList = mongoTemplate.find(query, ApAssociateWords.class);
-
-        return ResponseResult.okResult(wordsList);
+        //3.执行查询，模糊查询
+        Query query = Query.query(Criteria.where("associateWords").regex(".*?\\" + dto.getSearchWords() + ".*"));
+        query.limit(dto.getPageSize());
+        List<ApAssociateWords> apAssociateWords = mongoTemplate.find(query, ApAssociateWords.class);
+        return ResponseResult.okResult(apAssociateWords);
     }
 }

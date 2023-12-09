@@ -18,7 +18,7 @@ public class ApLikesBehaviorController {
     private ApLikesBehaviorService apLikesBehaviorService;
 
     @PostMapping
-    public ResponseResult like(@RequestBody LikesBehaviorDto dto) {
+    public ResponseResult like(@RequestBody LikesBehaviorDto dto){
         return apLikesBehaviorService.like(dto);
     }
 }

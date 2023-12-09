@@ -1,5 +1,6 @@
 package com.heima.search.controller.v1;
 
+
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.search.dtos.UserSearchDto;
 import com.heima.search.service.ArticleSearchService;
@@ -17,7 +18,6 @@ public class ArticleSearchController {
 
     @Autowired
     private ArticleSearchService articleSearchService;
-
 
     @PostMapping("/search")
     public ResponseResult search(@RequestBody UserSearchDto dto) throws IOException {

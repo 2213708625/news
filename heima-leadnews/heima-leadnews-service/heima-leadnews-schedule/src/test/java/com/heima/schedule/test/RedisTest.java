@@ -31,11 +31,11 @@ public class RedisTest {
     public void testList(){
 
         //在list的左边添加元素
-       cacheService.lLeftPush("list_001","hello,redis");
+//        cacheService.lLeftPush("list_001","hello,redis");
 
         //在list的右边获取元素，并删除
-        //String list_001 = cacheService.lRightPop("list_001");
-       // System.out.println(list_001);
+        String list_001 = cacheService.lRightPop("list_001");
+        System.out.println(list_001);
     }
 
     @Test

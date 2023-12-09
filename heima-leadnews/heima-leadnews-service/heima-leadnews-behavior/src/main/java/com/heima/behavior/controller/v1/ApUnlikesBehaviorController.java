@@ -17,7 +17,7 @@ public class ApUnlikesBehaviorController {
     private ApUnlikesBehaviorService apUnlikesBehaviorService;
 
     @PostMapping
-    public ResponseResult unLike(@RequestBody UnLikesBehaviorDto dto) {
+    public ResponseResult unLike(@RequestBody UnLikesBehaviorDto dto){
         return apUnlikesBehaviorService.unLike(dto);
     }
 }

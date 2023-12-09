@@ -2,7 +2,6 @@ package com.heima.article.service.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.heima.article.service.ApCollectionService;
-import com.heima.common.constants.BehaviorConstants;
 import com.heima.common.redis.CacheService;
 import com.heima.model.article.dtos.CollectionBehaviorDto;
 import com.heima.model.common.dtos.ResponseResult;
@@ -35,7 +34,7 @@ public class ApCollectionServiceImpl implements ApCollectionService {
         }
 
         //查询
-        String collectionJson = (String) cacheService.hGet(BehaviorConstants.COLLECTION_BEHAVIOR + user.getId(), dto.getEntryId().toString());
+        String collectionJson = (String) cacheService.hGet("COLLECTION-BEHAVIOR-" + dto.getEntryId(), user.getId().toString());
         if(StringUtils.isNotBlank(collectionJson) && dto.getOperation() == 0){
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID,"已收藏");
         }
@@ -43,11 +42,11 @@ public class ApCollectionServiceImpl implements ApCollectionService {
         //收藏
         if(dto.getOperation() == 0){
             log.info("文章收藏，保存key:{},{},{}",dto.getEntryId(),user.getId().toString(), JSON.toJSONString(dto));
-            cacheService.hPut(BehaviorConstants.COLLECTION_BEHAVIOR + user.getId(), dto.getEntryId().toString(), JSON.toJSONString(dto));
+            cacheService.hPut("COLLECTION-BEHAVIOR-"+dto.getEntryId(),user.getId().toString(), JSON.toJSONString(dto));
         }else {
             //取消收藏
             log.info("文章收藏，删除key:{},{},{}",dto.getEntryId(),user.getId().toString(), JSON.toJSONString(dto));
-            cacheService.hDelete(BehaviorConstants.COLLECTION_BEHAVIOR + user.getId(), dto.getEntryId().toString());
+            cacheService.hDelete("COLLECTION-BEHAVIOR-"+dto.getEntryId(),user.getId().toString());
         }
 
         return ResponseResult.okResult(AppHttpCodeEnum.SUCCESS);

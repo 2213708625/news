@@ -1,10 +1,8 @@
 package com.heima.schedule.service.impl;
 
 import com.alibaba.fastjson.JSON;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.heima.common.constants.ScheduleConstants;
 import com.heima.common.redis.CacheService;
-import com.heima.model.common.enums.TaskTypeEnum;
 import com.heima.model.schedule.dtos.Task;
 import com.heima.model.schedule.pojos.Taskinfo;
 import com.heima.model.schedule.pojos.TaskinfoLogs;
@@ -12,29 +10,17 @@ import com.heima.schedule.mapper.TaskinfoLogsMapper;
 import com.heima.schedule.mapper.TaskinfoMapper;
 import com.heima.schedule.service.TaskService;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.yaml.snakeyaml.events.Event;
 
-import javax.annotation.PostConstruct;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.List;
 import java.util.Set;
 
-/**
- * @projectName: heima-leadnews
- * @package: com.heima.wemedia.service.impl
- * @className: TaskServiceImpl
- * @author: 丁海斌
- * @description: TODO
- * @date: 2023/11/28 18:57
- * @version: 1.0
- */
 @Service
 @Transactional
 @Slf4j
@@ -128,8 +114,11 @@ public class TaskServiceImpl implements TaskService {
 
         return flag;
     }
+
+
     /**
      * 取消任务
+     *
      * @param taskId
      * @return
      */
@@ -138,90 +127,104 @@ public class TaskServiceImpl implements TaskService {
 
         boolean flag = false;
 
-        //删除任务，更新日志
-        Task task = updateDb(taskId,ScheduleConstants.EXECUTED);
+        //删除任务，更新任务日志
+        Task task = updateDb(taskId, ScheduleConstants.CANCELLED);
 
         //删除redis的数据
-        if(task != null){
+        if (task != null) {
             removeTaskFromCache(task);
             flag = true;
+
         }
-
-
-
-        return false;
+        return flag;
     }
 
     /**
-     * 删除redis中的任务数据
+     * 删除redis中的数据
+     *
      * @param task
      */
     private void removeTaskFromCache(Task task) {
 
-        String key = task.getTaskType()+"_"+task.getPriority();
-
-        if(task.getExecuteTime()<=System.currentTimeMillis()){
-            cacheService.lRemove(ScheduleConstants.TOPIC+key,0,JSON.toJSONString(task));
-        }else {
-            cacheService.zRemove(ScheduleConstants.FUTURE+key, JSON.toJSONString(task));
+        String key = task.getTaskType() + "_" + task.getPriority();
+        if (task.getExecuteTime() <= System.currentTimeMillis()) {
+            cacheService.lRemove(ScheduleConstants.TOPIC + key, 0, JSON.toJSONString(task));
+        } else {
+            cacheService.zRemove(ScheduleConstants.FUTURE + key, JSON.toJSONString(task));
         }
+
     }
 
     /**
-     * 删除任务，更新任务日志状态
+     * 删除任务，更新任务日志
+     *
      * @param taskId
      * @param status
      * @return
      */
     private Task updateDb(long taskId, int status) {
+
         Task task = null;
+
         try {
             //删除任务
             taskinfoMapper.deleteById(taskId);
 
+            //更新任务日志
             TaskinfoLogs taskinfoLogs = taskinfoLogsMapper.selectById(taskId);
             taskinfoLogs.setStatus(status);
             taskinfoLogsMapper.updateById(taskinfoLogs);
 
             task = new Task();
-            BeanUtils.copyProperties(taskinfoLogs,task);
+            BeanUtils.copyProperties(taskinfoLogs, task);
             task.setExecuteTime(taskinfoLogs.getExecuteTime().getTime());
-        }catch (Exception e){
-            log.error("task cancel exception taskid={}",taskId);
+        } catch (Exception e) {
+            log.error("task cancel exception taskId={}", taskId);
         }
 
-        return task;
 
+        return task;
     }
+
     /**
      * 按照类型和优先级拉取任务
+     *
+     * @param type
+     * @param priority
      * @return
      */
     @Override
-    public Task poll(int type,int priority) {
+    public Task poll(int type, int priority) {
         Task task = null;
+
         try {
-            String key = type+"_"+priority;
+            String key = type + "_" + priority;
+
+            //从redis中拉取数据  pop
             String task_json = cacheService.lRightPop(ScheduleConstants.TOPIC + key);
-            if(StringUtils.isNotBlank(task_json)){
+            if (StringUtils.isNotBlank(task_json)) {
                 task = JSON.parseObject(task_json, Task.class);
-                //更新数据库信息
-                updateDb(task.getTaskId(),ScheduleConstants.EXECUTED);
+
+                //修改数据库信息
+                updateDb(task.getTaskId(), ScheduleConstants.EXECUTED);
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
             log.error("poll task exception");
         }
 
+
         return task;
     }
+
     /**
      * 未来数据定时刷新
      */
     @Scheduled(cron = "0 */1 * * * ?")
-    public void refresh(){
+    public void refresh() {
 
-        String token = cacheService.tryLock("FUTURE_TASK_SYNC", 1000 * 30);
+        String token = cacheService.tryLock("FUTRUE_TASK_SYNC", 1000 * 30);
+
         if(StringUtils.isNotBlank(token)){
             log.info("未来数据定时刷新---定时任务");
 
@@ -230,44 +233,22 @@ public class TaskServiceImpl implements TaskService {
             for (String futureKey : futureKeys) {//future_100_50
 
                 //获取当前数据的key  topic
-                String topicKey = ScheduleConstants.TOPIC+futureKey.split(ScheduleConstants.FUTURE)[1];
+                String topicKey = ScheduleConstants.TOPIC + futureKey.split(ScheduleConstants.FUTURE)[1];
 
                 //按照key和分值查询符合条件的数据
                 Set<String> tasks = cacheService.zRangeByScore(futureKey, 0, System.currentTimeMillis());
 
                 //同步数据
-                if(!tasks.isEmpty()){
-                    cacheService.refreshWithPipeline(futureKey,topicKey,tasks);
-                    log.info("成功的将"+futureKey+"刷新到了"+topicKey);
+                if (!tasks.isEmpty()) {
+                    cacheService.refreshWithPipeline(futureKey, topicKey, tasks);
+                    log.info("成功的将" + futureKey + "刷新到了" + topicKey);
                 }
             }
         }
-    }
-    @Scheduled(cron = "0 */5 * * * ?")
-    @PostConstruct
-    public void reloadData() {
-        clearCache();
-        log.info("数据库数据同步到缓存");
-        Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.MINUTE, 5);
 
-        //查看小于未来5分钟的所有任务
-        List<Taskinfo> allTasks = taskinfoMapper.selectList(Wrappers.<Taskinfo>lambdaQuery().lt(Taskinfo::getExecuteTime,calendar.getTime()));
-        if(allTasks != null && allTasks.size() > 0){
-            for (Taskinfo taskinfo : allTasks) {
-                Task task = new Task();
-                BeanUtils.copyProperties(taskinfo,task);
-                task.setExecuteTime(taskinfo.getExecuteTime().getTime());
-                addTaskToCache(task);
-            }
-        }
+
+
     }
 
-    private void clearCache(){
-        // 删除缓存中未来数据集合和当前消费者队列的所有key
-        Set<String> futurekeys = cacheService.scan(ScheduleConstants.FUTURE + "*");// future_
-        Set<String> topickeys = cacheService.scan(ScheduleConstants.TOPIC + "*");// topic_
-        cacheService.delete(futurekeys);
-        cacheService.delete(topickeys);
-    }
+
 }

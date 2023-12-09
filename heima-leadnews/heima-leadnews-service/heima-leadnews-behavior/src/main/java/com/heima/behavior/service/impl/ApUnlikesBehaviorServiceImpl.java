@@ -2,7 +2,6 @@ package com.heima.behavior.service.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.heima.behavior.service.ApUnlikesBehaviorService;
-import com.heima.common.constants.BehaviorConstants;
 import com.heima.common.redis.CacheService;
 import com.heima.model.behavior.dtos.UnLikesBehaviorDto;
 import com.heima.model.common.dtos.ResponseResult;
@@ -30,21 +29,21 @@ public class ApUnlikesBehaviorServiceImpl implements ApUnlikesBehaviorService {
     @Override
     public ResponseResult unLike(UnLikesBehaviorDto dto) {
 
-        if (dto.getArticleId() == null) {
+        if(dto.getArticleId() == null){
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID);
         }
 
         ApUser user = AppThreadLocalUtil.getUser();
-        if (user == null) {
+        if(user == null){
             return ResponseResult.errorResult(AppHttpCodeEnum.NEED_LOGIN);
         }
 
-        if (dto.getType() == 0) {
+        if(dto.getType()==0){
             log.info("保存当前key:{} ,{}, {}", dto.getArticleId(), user.getId(), dto);
-            cacheService.hPut(BehaviorConstants.UN_LIKE_BEHAVIOR + dto.getArticleId().toString(), user.getId().toString(), JSON.toJSONString(dto));
-        } else {
+            cacheService.hPut("UNLIKE-BEHAVIOR-"+dto.getArticleId().toString(),user.getId().toString(), JSON.toJSONString(dto));
+        }else {
             log.info("删除当前key:{} ,{}, {}", dto.getArticleId(), user.getId(), dto);
-            cacheService.hDelete(BehaviorConstants.UN_LIKE_BEHAVIOR + dto.getArticleId().toString(), user.getId().toString());
+            cacheService.hDelete("UNLIKE-BEHAVIOR-"+dto.getArticleId().toString(),user.getId().toString());
         }
 
         return ResponseResult.okResult(AppHttpCodeEnum.SUCCESS);

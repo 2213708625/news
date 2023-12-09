@@ -27,16 +27,23 @@ public class MongoTest {
     //保存
     @Test
     public void saveTest(){
+        /*for (int i = 0; i < 10; i++) {
+            ApAssociateWords apAssociateWords = new ApAssociateWords();
+            apAssociateWords.setAssociateWords("黑马头条");
+            apAssociateWords.setCreatedTime(new Date());
+            mongoTemplate.save(apAssociateWords);
+        }*/
         ApAssociateWords apAssociateWords = new ApAssociateWords();
-        apAssociateWords.setAssociateWords("黑马头条");
+        apAssociateWords.setAssociateWords("黑马直播");
         apAssociateWords.setCreatedTime(new Date());
         mongoTemplate.save(apAssociateWords);
+
     }
 
     //查询一个
     @Test
     public void saveFindOne(){
-        ApAssociateWords apAssociateWords = mongoTemplate.findById("656a811b59d5b5430ced0e19", ApAssociateWords.class);
+        ApAssociateWords apAssociateWords = mongoTemplate.findById("60bd973eb0c1d430a71a7928", ApAssociateWords.class);
         System.out.println(apAssociateWords);
     }
 

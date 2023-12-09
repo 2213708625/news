@@ -15,8 +15,8 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @SpringBootApplication
 @EnableDiscoveryClient
 @MapperScan("com.heima.article.mapper")
-@EnableFeignClients(basePackages = "com.heima.apis")
 @EnableAsync
+@EnableFeignClients(basePackages = "com.heima.apis")
 public class ArticleApplication {
 
     public static void main(String[] args) {
@@ -29,4 +29,6 @@ public class ArticleApplication {
         interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.MYSQL));
         return interceptor;
     }
+
+
 }

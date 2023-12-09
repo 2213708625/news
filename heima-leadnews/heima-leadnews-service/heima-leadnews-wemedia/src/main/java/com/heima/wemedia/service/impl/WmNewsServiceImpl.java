@@ -13,25 +13,19 @@ import com.heima.common.exception.CustomException;
 import com.heima.model.common.dtos.PageResponseResult;
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;
-import com.heima.model.wemedia.dtos.NewsAuthDto;
 import com.heima.model.wemedia.dtos.WmNewsDto;
 import com.heima.model.wemedia.dtos.WmNewsPageReqDto;
 import com.heima.model.wemedia.pojos.WmMaterial;
 import com.heima.model.wemedia.pojos.WmNews;
 import com.heima.model.wemedia.pojos.WmNewsMaterial;
-import com.heima.model.wemedia.pojos.WmUser;
-import com.heima.model.wemedia.vo.WmNewsVo;
 import com.heima.utils.thread.WmThreadLocalUtil;
 import com.heima.wemedia.mapper.WmMaterialMapper;
 import com.heima.wemedia.mapper.WmNewsMapper;
 import com.heima.wemedia.mapper.WmNewsMaterialMapper;
-import com.heima.wemedia.mapper.WmUserMapper;
 import com.heima.wemedia.service.WmNewsAutoScanService;
 import com.heima.wemedia.service.WmNewsService;
 import com.heima.wemedia.service.WmNewsTaskService;
-import jdk.nashorn.internal.ir.ReturnNode;
 import lombok.extern.slf4j.Slf4j;
-import net.bytebuddy.asm.Advice;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,11 +40,6 @@ import java.util.stream.Collectors;
 @Slf4j
 @Transactional
 public class WmNewsServiceImpl extends ServiceImpl<WmNewsMapper, WmNews> implements WmNewsService {
-    @Autowired
-    private WmUserMapper wmUserMapper;
-
-    @Autowired
-    private WmNewsMapper wmNewsMapper;
 
     /**
      * 条件查询文章列表
@@ -92,6 +81,7 @@ public class WmNewsServiceImpl extends ServiceImpl<WmNewsMapper, WmNews> impleme
 
         //按照发布时间倒序查询
         lambdaQueryWrapper.orderByDesc(WmNews::getPublishTime);
+
 
         page = page(page, lambdaQueryWrapper);
 
@@ -156,7 +146,7 @@ public class WmNewsServiceImpl extends ServiceImpl<WmNewsMapper, WmNews> impleme
 
         //审核文章
 //        wmNewsAutoScanService.autoScanWmNews(wmNews.getId());
-        wmNewsTaskService.addNewsToTask(wmNews.getId(), wmNews.getPublishTime());
+        wmNewsTaskService.addNewsToTask(wmNews.getId(),wmNews.getPublishTime());
 
         return ResponseResult.okResult(AppHttpCodeEnum.SUCCESS);
 
@@ -334,100 +324,5 @@ public class WmNewsServiceImpl extends ServiceImpl<WmNewsMapper, WmNews> impleme
 
         }
         return ResponseResult.okResult(AppHttpCodeEnum.SUCCESS);
-    }
-
-    /**分页查询文章列表
-     * @param dto
-     * @return
-     * - 分页查询自媒体文章
-     * - 可以按照标题模糊查询
-     * - 可以按照审核状态进行精确检索
-     * - 文章查询按照创建时间倒序查询
-     * - 注意：需要展示作者名称
-     */
-    @Override
-    public ResponseResult listVo(NewsAuthDto dto) {
-        //1.参数检查
-        dto.checkParam();
-
-        //记录当前页
-        int currentPage = dto.getPage();
-
-        //2.分页查询+count查询
-        dto.setPage((dto.getPage()-1)*dto.getSize());
-        List<WmNewsVo> wmNewsVoList = wmNewsMapper.findListAndPage(dto);
-        int count = wmNewsMapper.findListCount(dto);
-
-        //3.结果返回
-        ResponseResult responseResult = new PageResponseResult(currentPage,dto.getSize(),count);
-        responseResult.setData(wmNewsVoList);
-        return responseResult;
-    }
-
-    /**人工审核
-     * @param id
-     * @return
-     */
-    @Override
-    public ResponseResult oneVo(Integer id) {
-        //1.检查参数
-        if(id == null){
-            return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID);
-        }
-        //2.查询文章信息
-        WmNews wmNews = getById(id);
-        if(wmNews == null){
-            return ResponseResult.errorResult(AppHttpCodeEnum.DATA_NOT_EXIST);
-        }
-
-        //3.查询用户信息
-        WmUser wmUser = wmUserMapper.selectById(wmNews.getUserId());
-
-        //4.封装vo返回
-        WmNewsVo vo = new WmNewsVo();
-        //属性拷贝
-        BeanUtils.copyProperties(wmNews,vo);
-        if(wmUser != null){
-            vo.setAuthorName(wmUser.getName());
-        }
-
-        ResponseResult responseResult = new ResponseResult().ok(vo);
-
-        return responseResult;
-    }
-
-    /**人工审核失败
-     * @param dto
-     * @return
-     */
-    @Override
-    public ResponseResult failAuth(NewsAuthDto dto) {
-        //校验参数
-        dto.checkParam();
-        //审核失败，修改状态为2
-        boolean flag = update(Wrappers.<WmNews>lambdaUpdate().eq(WmNews::getId,dto.getId()).set(WmNews::getStatus, dto.getStatus())
-                .set(WmNews::getReason, dto.getMsg()));
-        if(flag){
-            return ResponseResult.okResult(AppHttpCodeEnum.SUCCESS);
-        }
-        return ResponseResult.errorResult(AppHttpCodeEnum.SERVER_ERROR,"修改状态失败");
-    }
-
-
-    /**人工审核成功
-     * @param dto
-     * @return
-     */
-    @Override
-    public ResponseResult passAuth(NewsAuthDto dto) {
-        //校验参数
-        dto.checkParam();
-        //审核成功，修改状态为9
-        boolean flag = update(Wrappers.<WmNews>lambdaUpdate().eq(WmNews::getId,dto.getId()).set(WmNews::getStatus, dto.getStatus())
-                .set(WmNews::getReason, dto.getMsg()));
-        if(flag){
-            return ResponseResult.okResult(AppHttpCodeEnum.SUCCESS);
-        }
-        return ResponseResult.errorResult(AppHttpCodeEnum.SERVER_ERROR,"修改状态失败");
     }
 }

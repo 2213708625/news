@@ -1,6 +1,5 @@
 package com.heima.user.service.impl;
 
-import com.heima.common.constants.BehaviorConstants;
 import com.heima.common.redis.CacheService;
 import com.heima.model.common.dtos.ResponseResult;
 import com.heima.model.common.enums.AppHttpCodeEnum;
@@ -31,7 +30,8 @@ public class ApUserRelationServiceImpl implements ApUserRelationService {
     @Override
     public ResponseResult follow(UserRelationDto dto) {
         //1 参数校验
-        if (dto.getOperation() == null || dto.getOperation() < 0 || dto.getOperation() > 1) {
+        if (dto.getOperation() == null ||
+                dto.getOperation() < 0 || dto.getOperation() > 1) {
             return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID);
         }
 
@@ -46,14 +46,14 @@ public class ApUserRelationServiceImpl implements ApUserRelationService {
         Integer followUserId = dto.getAuthorId();
         if (dto.getOperation() == 0) {
             // 将对方写入我的关注中
-            cacheService.zAdd(BehaviorConstants.APUSER_FOLLOW_RELATION + apUserId, followUserId.toString(), System.currentTimeMillis());
+            cacheService.zAdd("apuser:follow:" + apUserId, followUserId.toString(), System.currentTimeMillis());
             // 将我写入对方的粉丝中
-            cacheService.zAdd(BehaviorConstants.APUSER_FANS_RELATION+ followUserId, apUserId.toString(), System.currentTimeMillis());
+            cacheService.zAdd("apuser:fans:" + followUserId, apUserId.toString(), System.currentTimeMillis());
 
         } else {
             // 取消关注
-            cacheService.zRemove(BehaviorConstants.APUSER_FOLLOW_RELATION + apUserId, followUserId.toString());
-            cacheService.zRemove(BehaviorConstants.APUSER_FANS_RELATION + followUserId, apUserId.toString());
+            cacheService.zRemove("apuser:follow:" + apUserId, followUserId.toString());
+            cacheService.zRemove("apuser:fans:" + followUserId, apUserId.toString());
         }
 
         return ResponseResult.okResult(AppHttpCodeEnum.SUCCESS);

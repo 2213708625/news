@@ -1,9 +1,7 @@
 package com.heima.search.interceptor;
+
 import com.heima.model.user.pojos.ApUser;
-import com.heima.model.wemedia.pojos.WmUser;
 import com.heima.utils.thread.AppThreadLocalUtil;
-import com.heima.utils.thread.WmThreadLocalUtil;
-import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import javax.servlet.http.HttpServletRequest;

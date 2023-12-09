@@ -2,7 +2,6 @@ package com.heima.behavior.service.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.heima.behavior.service.ApLikesBehaviorService;
-import com.heima.common.constants.BehaviorConstants;
 import com.heima.common.constants.HotArticleConstants;
 import com.heima.common.redis.CacheService;
 import com.heima.model.behavior.dtos.LikesBehaviorDto;
@@ -25,6 +24,7 @@ public class ApLikesBehaviorServiceImpl implements ApLikesBehaviorService {
 
     @Autowired
     private CacheService cacheService;
+
     @Autowired
     private KafkaTemplate<String,String> kafkaTemplate;
 
@@ -38,43 +38,44 @@ public class ApLikesBehaviorServiceImpl implements ApLikesBehaviorService {
 
         //2.是否登录
         ApUser user = AppThreadLocalUtil.getUser();
-        if (user == null) {
+        if(user == null){
             return ResponseResult.errorResult(AppHttpCodeEnum.NEED_LOGIN);
         }
-        //封装文章修改信息，需要发送到kafka
+
         UpdateArticleMess mess = new UpdateArticleMess();
         mess.setArticleId(dto.getArticleId());
         mess.setType(UpdateArticleMess.UpdateArticleType.LIKES);
 
         //3.点赞  保存数据
-        if (dto.getOperation() == 0) {
-            Object obj = cacheService.hGet(BehaviorConstants.LIKE_BEHAVIOR + dto.getArticleId().toString(), user.getId().toString());
-            if (obj != null) {
-                return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID, "已点赞");
+        if(dto.getOperation() == 0){
+            Object obj = cacheService.hGet("LIKE-BEHAVIOR-" + dto.getArticleId().toString(), user.getId().toString());
+            if(obj != null){
+                return ResponseResult.errorResult(AppHttpCodeEnum.PARAM_INVALID,"已点赞");
             }
             // 保存当前key
             log.info("保存当前key:{} ,{}, {}", dto.getArticleId(), user.getId(), dto);
-            cacheService.hPut(BehaviorConstants.LIKE_BEHAVIOR + dto.getArticleId().toString(), user.getId().toString(), JSON.toJSONString(dto));
-            //点赞这里信息就要封装信息
+            cacheService.hPut("LIKE-BEHAVIOR-" + dto.getArticleId().toString(), user.getId().toString(), JSON.toJSONString(dto));
             mess.setAdd(1);
-        } else {
+        }else {
             // 删除当前key
             log.info("删除当前key:{}, {}", dto.getArticleId(), user.getId());
-            cacheService.hDelete(BehaviorConstants.LIKE_BEHAVIOR + dto.getArticleId().toString(), user.getId().toString());
+            cacheService.hDelete("LIKE-BEHAVIOR-" + dto.getArticleId().toString(), user.getId().toString());
             mess.setAdd(-1);
         }
-        //发送文章实时的状态到kafka
-        kafkaTemplate.send(HotArticleConstants.HOT_ARTICLE_SCORE_TOPIC, JSON.toJSONString(mess));
+
+        //发送消息，数据聚合
+        kafkaTemplate.send(HotArticleConstants.HOT_ARTICLE_SCORE_TOPIC,JSON.toJSONString(mess));
+
         return ResponseResult.okResult(AppHttpCodeEnum.SUCCESS);
+
     }
 
     /**
      * 检查参数
-     *
      * @return
      */
-    private boolean checkParam(LikesBehaviorDto dto) {
-        if (dto.getType() > 2 || dto.getType() < 0 || dto.getOperation() > 1 || dto.getOperation() < 0) {
+    private boolean checkParam(LikesBehaviorDto dto){
+        if(dto.getType() > 2 || dto.getType() < 0 || dto.getOperation() > 1 || dto.getOperation() < 0){
             return true;
         }
         return false;

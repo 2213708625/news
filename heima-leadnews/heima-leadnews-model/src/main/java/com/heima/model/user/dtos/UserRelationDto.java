@@ -1,21 +1,22 @@
 package com.heima.model.user.dtos;
 
+import com.heima.model.common.annotation.IdEncrypt;
 import lombok.Data;
 
-/**
- * @projectName: heima-leadnews
- * @package: com.heima.model.user.dtos
- * @className: UserRelationDto
- * @author: 丁海斌
- * @description: TODO
- * @date: 2023/12/5 9:35
- * @version: 1.0
- */
 @Data
 public class UserRelationDto {
 
-    private Long articleId;
-    private Integer authorId;
-    private Short operation;
+    // 文章作者ID
+    @IdEncrypt
+    Integer authorId;
 
+    // 文章id
+    @IdEncrypt
+    Long articleId;
+    /**
+     * 操作方式
+     * 0  关注
+     * 1  取消
+     */
+    Short operation;
 }

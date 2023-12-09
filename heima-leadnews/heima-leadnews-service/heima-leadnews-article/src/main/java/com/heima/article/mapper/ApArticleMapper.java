@@ -20,10 +20,5 @@ public interface ApArticleMapper extends BaseMapper<ApArticle> {
      */
     public List<ApArticle> loadArticleList(ArticleHomeDto dto,Short type);
 
-    /*
-     * @Description:查询前五天的文章
-     * @param dayParam
-     * @return: java.util.List<com.heima.model.article.pojos.ApArticle>
-     */
     public List<ApArticle> findArticleListByLast5days(@Param("dayParam") Date dayParam);
 }

@@ -2,7 +2,7 @@ package com.heima.article.stream;
 
 import com.alibaba.fastjson.JSON;
 import com.heima.common.constants.HotArticleConstants;
-import com.heima.model.article.mess.ArticleVisitStreamMess;
+import com.heima.model.mess.ArticleVisitStreamMess;
 import com.heima.model.mess.UpdateArticleMess;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -14,31 +14,22 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
 
-/**
- * @projectName: heima-leadnews
- * @package: com.heima.article.stream
- * @className: HotArticleStreamHandler
- * @author: 丁海斌
- * @description: TODO
- * @date: 2023/12/7 14:25
- * @version: 1.0
- */
 @Configuration
 @Slf4j
 public class HotArticleStreamHandler {
 
     @Bean
-    public KStream<String, String> kStream(StreamsBuilder streamsBuilder) {
+    public KStream<String,String> kStream(StreamsBuilder streamsBuilder){
         //接收消息
-        KStream<String, String> stream = streamsBuilder.stream(HotArticleConstants.HOT_ARTICLE_SCORE_TOPIC);
+        KStream<String,String> stream = streamsBuilder.stream(HotArticleConstants.HOT_ARTICLE_SCORE_TOPIC);
         //聚合流式处理
-        stream.map((key, value) -> {
-                    UpdateArticleMess mess = JSON.parseObject(value, UpdateArticleMess.class);
-                    //重置消息的key:1234343434   和  value: likes:1
-                    return new KeyValue<>(mess.getArticleId().toString(), mess.getType().name() + ":" + mess.getAdd());
-                })
+        stream.map((key,value)->{
+            UpdateArticleMess mess = JSON.parseObject(value, UpdateArticleMess.class);
+            //重置消息的key:1234343434   和  value: likes:1
+            return new KeyValue<>(mess.getArticleId().toString(),mess.getType().name()+":"+mess.getAdd());
+        })
                 //按照文章id进行聚合
-                .groupBy((key, value) -> key)
+                .groupBy((key,value)->key)
                 //时间窗口
                 .windowedBy(TimeWindows.of(Duration.ofSeconds(10)))
                 /**
@@ -59,17 +50,17 @@ public class HotArticleStreamHandler {
                 }, new Aggregator<String, String, String>() {
                     @Override
                     public String apply(String key, String value, String aggValue) {
-                        if (StringUtils.isBlank(value)) {
+                        if(StringUtils.isBlank(value)){
                             return aggValue;
                         }
                         String[] aggAry = aggValue.split(",");
-                        int col = 0, com = 0, lik = 0, vie = 0;
+                        int col = 0,com=0,lik=0,vie=0;
                         for (String agg : aggAry) {
                             String[] split = agg.split(":");
                             /**
                              * 获得初始值，也是时间窗口内计算之后的值
                              */
-                            switch (UpdateArticleMess.UpdateArticleType.valueOf(split[0])) {
+                            switch (UpdateArticleMess.UpdateArticleType.valueOf(split[0])){
                                 case COLLECTION:
                                     col = Integer.parseInt(split[1]);
                                     break;
@@ -88,7 +79,7 @@ public class HotArticleStreamHandler {
                          * 累加操作
                          */
                         String[] valAry = value.split(":");
-                        switch (UpdateArticleMess.UpdateArticleType.valueOf(valAry[0])) {
+                        switch (UpdateArticleMess.UpdateArticleType.valueOf(valAry[0])){
                             case COLLECTION:
                                 col += Integer.parseInt(valAry[1]);
                                 break;
@@ -104,14 +95,14 @@ public class HotArticleStreamHandler {
                         }
 
                         String formatStr = String.format("COLLECTION:%d,COMMENT:%d,LIKES:%d,VIEWS:%d", col, com, lik, vie);
-                        System.out.println("文章的id:" + key);
-                        System.out.println("当前时间窗口内的消息处理结果：" + formatStr);
+                        System.out.println("文章的id:"+key);
+                        System.out.println("当前时间窗口内的消息处理结果："+formatStr);
                         return formatStr;
                     }
                 }, Materialized.as("hot-atricle-stream-count-001"))
                 .toStream()
-                .map((key, value) -> {
-                    return new KeyValue<>(key.key().toString(), formatObj(key.key().toString(), value));
+                .map((key,value)->{
+                    return new KeyValue<>(key.key().toString(),formatObj(key.key().toString(),value));
                 })
                 //发送消息
                 .to(HotArticleConstants.HOT_ARTICLE_INCR_HANDLE_TOPIC);
@@ -123,19 +114,18 @@ public class HotArticleStreamHandler {
 
     /**
      * 格式化消息的value数据
-     *
      * @param articleId
      * @param value
      * @return
      */
-    public String formatObj(String articleId, String value) {
+    public String formatObj(String articleId,String value){
         ArticleVisitStreamMess mess = new ArticleVisitStreamMess();
         mess.setArticleId(Long.valueOf(articleId));
         //COLLECTION:0,COMMENT:0,LIKES:0,VIEWS:0
         String[] valAry = value.split(",");
         for (String val : valAry) {
             String[] split = val.split(":");
-            switch (UpdateArticleMess.UpdateArticleType.valueOf(split[0])) {
+            switch (UpdateArticleMess.UpdateArticleType.valueOf(split[0])){
                 case COLLECTION:
                     mess.setCollect(Integer.parseInt(split[1]));
                     break;
@@ -150,9 +140,8 @@ public class HotArticleStreamHandler {
                     break;
             }
         }
-        log.info("聚合消息处理之后的结果为:{}", JSON.toJSONString(mess));
+        log.info("聚合消息处理之后的结果为:{}",JSON.toJSONString(mess));
         return JSON.toJSONString(mess);
 
     }
-
 }

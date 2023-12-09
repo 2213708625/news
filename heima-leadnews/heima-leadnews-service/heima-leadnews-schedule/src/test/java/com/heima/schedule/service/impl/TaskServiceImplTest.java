@@ -1,8 +1,5 @@
 package com.heima.schedule.service.impl;
 
-import com.heima.apis.schedule.IScheduleClient;
-import com.heima.model.common.dtos.ResponseResult;
-import com.heima.model.common.enums.TaskTypeEnum;
 import com.heima.model.schedule.dtos.Task;
 import com.heima.schedule.ScheduleApplication;
 import com.heima.schedule.service.TaskService;
@@ -20,8 +17,6 @@ public class TaskServiceImplTest {
 
     @Autowired
     private TaskService taskService;
-    @Autowired
-    private IScheduleClient scheduleClient;
 
     @Test
     public void addTask() {
@@ -44,11 +39,8 @@ public class TaskServiceImplTest {
 
     @Test
     public void testPoll(){
-        ResponseResult responseResult = scheduleClient.poll(TaskTypeEnum.NEWS_SCAN_TIME.getTaskType(), TaskTypeEnum.NEWS_SCAN_TIME.getPriority());
-        System.out.println(responseResult.getData());
-        /*
-
-         * */
+        Task task = taskService.poll(100, 50);
+        System.out.println(task);
     }
 
 
